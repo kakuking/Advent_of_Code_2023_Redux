@@ -4,8 +4,8 @@ Following [Advent of Code 2023](https://adventofcode.com/2023/). Finished 2025, 
 
 - [x] Day 1 ⭐
 - [x] Day 1 ⭐⭐ ✨
-- [ ] Day 2 ⭐
-- [ ] Day 2 ⭐⭐
+- [x] Day 2 ⭐
+- [x] Day 2 ⭐⭐
 - [ ] Day 3 ⭐
 - [ ] Day 3 ⭐⭐
 - [ ] Day 4 ⭐
