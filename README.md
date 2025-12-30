@@ -1,4 +1,4 @@
-# Advent of Code 2025
+# Advent of Code 2023
 
 Following [Advent of Code 2023](https://adventofcode.com/2023/). Finished 2025, and 2024. Did this 2 years ago in Rust but gave up halfway. So surely I will finish this time.
 
