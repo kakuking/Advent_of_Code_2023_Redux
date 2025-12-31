@@ -1,23 +1,16 @@
 from functools import lru_cache
-from math import inf
-from typing import Dict, List, Tuple
+from math import inf, floor
+from typing import Dict, List, Tuple, Set, Optional
 from utils import read_file, set_print, print, bprint
-
 from tqdm import tqdm
 
+Range = Tuple[int, int]
+
 class Farm:
-    # seed_to_soil: Dict[int, int]
-    # soil_to_fert: Dict[int, int]
-    # fert_to_water: Dict[int, int]
-    # water_to_light: Dict[int, int]
-    # light_to_temp: Dict[int, int]
-    # temp_to_humid: Dict[int, int]
-    # humid_to_location: Dict[int, int]
-    
-    maps: List[Dict[Tuple[int, int], Tuple[int, int]]]
+    maps: List[Dict[Range, Range]]
     
     seeds: List[int]
-    seed_ranges: List[Tuple[int, int]]
+    seed_ranges: List[Range]
     
     def __init__(self, parts: List[str]):
         self.parse_seeds(parts[0])
@@ -39,7 +32,7 @@ class Farm:
             self.seeds.append(first)
             self.seeds.append(second)
 
-            self.seed_ranges.append((first, first+second))
+            self.seed_ranges.append((first, first+second-1))
     
     def parse_maps(self, parts: List[str]):
         for part in parts:
@@ -50,12 +43,11 @@ class Farm:
             for line in lines[1:]:
                 self.parse_lines(line)
     
-    @lru_cache(maxsize=None)
     def get_map_value(self, map_idx: int, value: int) -> int:
         map = self.maps[map_idx]
         
         for (key_start, key_end), (value_start, value_end) in map.items():
-            if key_start <= value < key_end:
+            if key_start <= value <= key_end:
                 return value_start + value - key_start
         
         return value
@@ -64,10 +56,10 @@ class Farm:
         numbers = [int(i) for i in line.split()]
 
         value_start = numbers[0]
-        value_end = numbers[0] + numbers[2]
+        value_end = numbers[0] + numbers[2] - 1
 
         key_start = numbers[1]
-        key_end = numbers[1] + numbers[2]
+        key_end = numbers[1] + numbers[2] - 1
 
         self.maps[-1][(key_start, key_end)] = (value_start, value_end)
     
@@ -82,17 +74,62 @@ class Farm:
 
         return int(min_location)
 
-    def find_lowest_seed_location_ranged(self) -> int:
-        min_location = -1  
-        for seed_range in self.seed_ranges:
-            for seed in tqdm(range(seed_range[0], seed_range[1])):
-                value = seed
-                for i in range(7):
-                    value = self.get_map_value(i, value)
-                
-                min_location = value if min_location == -1 else min(min_location, value)
+    def map_range(self, input_range: Range, map_idx: int) -> List[Range]:
+        result = []
+        cur_start, cur_end = input_range
 
-        return int(min_location)
+        for (k_start, k_end), (v_start, _) in sorted(self.maps[map_idx].items()):
+            if cur_start > cur_end:
+                break
+
+            # no overlap
+            if cur_end < k_start or cur_start > k_end:
+                continue
+
+            # left unmapped part
+            if cur_start < k_start:
+                result.append((cur_start, k_start - 1))
+                cur_start = k_start
+
+            # mapped overlap
+            overlap_start = max(cur_start, k_start)
+            overlap_end = min(cur_end, k_end)
+
+            mapped_start = self.get_map_value(map_idx, overlap_start)
+            mapped_end = self.get_map_value(map_idx, overlap_end)
+            result.append((mapped_start, mapped_end))
+
+            cur_start = overlap_end + 1
+
+        # right unmapped tail
+        if cur_start <= cur_end:
+            result.append((cur_start, cur_end))
+
+        # print(f"Map: {map_idx}")
+        # print(self.maps[map_idx])
+        # print(f"input: {input_range}")
+        # print(f"output: {result}")
+        
+        return result
+    
+    def get_lowest(self, lowest: int, ranges: List[Range]) -> int:
+        for range in ranges:
+            if lowest == -1:
+                lowest = range[0]
+            else:
+                lowest = min(lowest, range[0])
+        
+        return lowest
+    
+    def get_lowest_ranged(self) -> int:
+        queue: List[Range] = self.seed_ranges.copy()
+        for map_idx in range(len(self.maps)):
+            output = []
+            for item in queue:
+                output.extend(self.map_range(item, map_idx))
+            queue = output.copy()
+
+        return min(r[0] for r in queue)
 
 def solve_1(filename: str) -> int:
     total: int = 0
@@ -113,7 +150,7 @@ def solve_2(filename: str) -> int:
     
     farm = Farm(data)
     
-    total = farm.find_lowest_seed_location_ranged()
+    total = farm.get_lowest_ranged()
     
     bprint(f"2. Total : {total}")
     return total
